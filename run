@@ -1,0 +1,4 @@
+clear;
+make;
+mpiexec -n 5 ./electleader 10;
+make clean;
