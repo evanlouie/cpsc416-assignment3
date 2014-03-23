@@ -16,7 +16,9 @@
 #include <pthread.h>
 #include <getopt.h>
 #include <mpi.h>
-#define MASTER  0
+
+
+
 int print_error(char *message) {
     printf("===========ERROR==========\n\t%s\n==========================\n", message);
     exit(-1);
@@ -25,16 +27,15 @@ int debug_message(char *message) {
     printf("%s\n", message);
     return 0;
 }
+
 int main(int argc, char * argv[])
 {
-    bool debug = true;
-    
-    int PNUM = -1;
+    bool debug = false;
+    bool leader_elected, participant, is_leader;
+    int PNUM, id, send_count, recv_count, world_size, world_rank, leader_id, message;
+
     // Parse required arguments
-    for (int i=0; i<=argc-1; i++) {
-        printf("arg%i:%s\n", i, argv[i]);
-    }
-    
+    if (debug) for (int i=0; i<=argc-1; i++) printf("arg%i:%s\n", i, argv[i]);
     if (argv[1]==NULL) {
         print_error("PNUM (arg1) not provided");
     } else {
@@ -50,23 +51,55 @@ int main(int argc, char * argv[])
             PNUM = atoi(argv[1]);
         }
     }
-    
-    if (debug) {
-        printf("debug-mode: active\n");
+
+    // START PROGRAM CODE
+    leader_elected = false;
+    participant = false;
+    is_leader = false;
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+    // Find out rank, size
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    id = (world_rank+1) * PNUM % world_size;
+    leader_id = -1;
+    message = -1;
+
+    while (leader_elected == false) {
+        if (world_rank != 0) {
+            int last_message = message;
+            MPI_Recv(&message, 5, MPI_INT, world_rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            printf("Process %d received message %d from process %d\n", world_rank, message, world_rank - 1);
+            if (message > id) {
+                participant = true;
+            } else if ((message < id) && participant == false) {
+                message = id;
+                participant = true;
+            } else if ((message < id) && participant == true) {
+                // TODO: discard message
+                message = last_message;
+            } else if (message == id) {
+
+            }
+          } else {
+            // Set the message's value if you are process 0
+            if (message == -1) message = id;
+          }
+          MPI_Send(&message, 1, MPI_INT, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD);
+          // Now process 0 can receive from the last process. This makes sure that at
+          // least one MPI_Send is initialized before all MPI_Recvs (again, to prevent
+          // deadlock)
+          if (world_rank == 0) {
+            MPI_Recv(&message, 5, MPI_INT, world_size - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            printf("Process %d received message %d from process %d\n", world_rank, message, world_size - 1);
+            if (message == id) {
+
+            }
+          }
     }
-    
-    // insert code here...
-    printf("Hello, World!\n");
+    MPI_Finalize();
+        printf("%d: %d\n", world_rank, leader_id);
 
-   int rank, numprocs;
-
-   MPI_Init(&argc, &argv);
-   MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
-   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-   printf("Hello World from proces %d of %d.\n",rank,numprocs);
-   MPI_Finalize();
-
-    return 0;
 }
 
 

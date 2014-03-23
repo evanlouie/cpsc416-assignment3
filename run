@@ -1,4 +1,4 @@
 clear;
 make;
-mpiexec -n 5 ./electleader 10;
+mpiexec -n 13 ./electleader 5;
 make clean;
