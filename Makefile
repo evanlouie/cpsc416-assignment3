@@ -1,5 +1,5 @@
 all:
-	mpicc -o electleader electleader.c -std=c11
+	mpicc -o electleader electleader.c -std=c99
 
 clean:
 	rm -f electleader
