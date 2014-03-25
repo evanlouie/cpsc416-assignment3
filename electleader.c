@@ -29,11 +29,12 @@
     - This application is generally buggy.
     - It sometimes reaches a livelock at some point during the final iteration to sum the total recieves and sends throughout the entire
     application. Reaching this lock seems to be dependant upon the combination of PNUM and NUM used.
-    - 
+    - For unknown reason, termination doesn't always occure when a process recieves a message from both sides.  As such, some extra 
+    messages are sent.
 
 
-    ISSUES:
-    -------
+    KNONW ISSUES:
+    -------------
     i) Sometimes, a process hangs and doesn't finalize();
     ii) During one of the iterations, process 0 seems to overwrite its leader_id to something incorrect.  Unable to find reason. 
     iii) total recv count is off
@@ -135,7 +136,7 @@ int recv_message(int *message, int *last_message, int *recv_count, MPI_Status *s
 
 int main(int argc, char * argv[])
 {
-    debug = true;
+    debug = false;
     bool participant, is_leader;
     int PNUM, id, send_count, recv_count, world_size, world_rank, leader_id, message;
 
@@ -195,7 +196,7 @@ int main(int argc, char * argv[])
                 message = last_message;
                 pass_message(&message, &world_rank, &world_size, &status, &send_count);
             } else if (recv_left && recv_right) {
-                printf("recv from both sides\n");
+                if (debug) printf("recv from both sides\n");
                 if (message < last_message) message = last_message;
                 leader_id = message;
                 // START SECOND PART OF ALGORITHM (ELECTED MESSAGE)
